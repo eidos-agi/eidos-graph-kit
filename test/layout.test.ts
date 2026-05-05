@@ -240,7 +240,9 @@ test("layoutGraph supports fan-in mode", () => {
   const out = layout.nodes.find((node) => node.id === "out");
 
   assert.equal(layout.edges.length, 3);
-  assert.ok(a && runtime && out);
+  if (!a || !runtime || !out) {
+    assert.fail("expected fan-in nodes to be present");
+  }
   assert.ok(a.x < runtime.x);
   assert.ok(runtime.x < out.x);
 });
