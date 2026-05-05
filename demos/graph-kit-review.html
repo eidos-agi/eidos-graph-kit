@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eidos Graph Kit Review</title>
+  <style>
+    :root { color-scheme: light; --bg:#f7f8f5; --ink:#17201b; --muted:#66736b; --line:#d9dfd7; --green:#1f7a4d; --panel:#fff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { max-width: 1180px; margin: 0 auto; padding: 24px; }
+    h1 { font-size: 24px; margin: 0 0 4px; }
+    h2 { font-size: 18px; margin: 0; }
+    p { color: var(--muted); margin: 0; }
+    .tabs { display: flex; gap: 6px; margin: 18px 0; overflow-x: auto; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+    button { border: 1px solid var(--line); background: var(--panel); border-radius: 6px; color: var(--ink); cursor: pointer; font: inherit; padding: 8px 10px; white-space: nowrap; }
+    button.active { background: #dde6dc; border-color: #c5d2c4; font-weight: 700; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .panel header { align-items: start; display: flex; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
+    dl { display: flex; gap: 8px; margin: 0; }
+    dl div { background: var(--panel); border: 1px solid var(--line); min-width: 76px; padding: 8px; }
+    dt { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+    dd { font-size: 20px; font-weight: 800; margin: 0; }
+    .graph-frame { background: var(--panel); border: 1px solid var(--line); overflow: auto; padding: 12px; }
+    svg { display: block; min-width: 720px; width: 100%; }
+    [class*="-edge"] { fill: none; stroke: var(--green); stroke-linecap: round; stroke-width: 2.5; }
+    [class*="-arrowhead"] { fill: var(--green); }
+    [class*="-section"] rect { fill: #f8faf7; stroke: #cfd8cf; stroke-dasharray: 4 4; stroke-width: 1; }
+    [class*="-section-title"] { fill: var(--muted); font-size: 11px; font-weight: 800; text-anchor: start; text-transform: uppercase; }
+    [class*="-node"] rect { fill: #fff; stroke: var(--line); stroke-width: 1; }
+    [class*="-node"] [class*="-hit-area"] { cursor: pointer; fill: transparent; stroke: transparent; }
+    [class*="-source"] rect { stroke: #6a9f45; stroke-width: 2; }
+    [class*="-runtime"] rect { stroke: #0f603b; stroke-width: 2; }
+    [class*="-warehouse"] rect { stroke: #1f7a4d; stroke-width: 2; }
+    [class*="-transform"] rect { stroke: #64748b; stroke-width: 2; }
+    [class*="-publish"] rect { stroke: #a76011; stroke-width: 2; }
+    [class*="-app"] rect { stroke: #155e75; stroke-width: 2; }
+    [class*="-title"] { dominant-baseline: middle; fill: var(--ink); font-size: 13px; font-weight: 800; text-anchor: middle; }
+    [class*="-subtitle"] { fill: var(--muted); font-size: 11px; text-anchor: middle; }
+    [class*="-kind"] { fill: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-anchor: middle; text-transform: uppercase; }
+    [class*="-popover"] { display: none; }
+    [class*="-node"].is-active > rect:not([class*="-hit-area"]) { filter: drop-shadow(0 0 0.35rem rgba(31, 122, 77, 0.22)); }
+    .floating-popover { background: #fff; border: 1px solid #cfd8cf; box-shadow: 0 16px 34px rgba(23, 32, 27, 0.18); color: var(--ink); display: none; font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 320px; min-width: 280px; padding: 12px; position: fixed; z-index: 20; }
+    .floating-popover.is-visible { display: block; }
+    .floating-popover strong { display: block; font-size: 14px; margin-bottom: 2px; }
+    .floating-popover [class*="-popover-author"] { color: #1f7a4d; display: block; font-size: 11px; font-weight: 800; margin-bottom: 6px; text-transform: uppercase; }
+    .floating-popover [class*="-popover-details"] { color: #334139; display: block; margin: 0 0 10px; }
+    .floating-popover [class*="-popover-links"] { display: flex; flex-wrap: wrap; gap: 6px; }
+    .floating-popover [class*="-popover-pill"] { border: 1px solid #d9dfd7; color: var(--ink); display: inline-block; padding: 4px 7px; text-decoration: none; }
+    .diagnostics { display: grid; gap: 6px; list-style: none; margin: 10px 0 0; padding: 0; }
+    .diagnostics li { background: #fff; border: 1px solid var(--line); color: var(--muted); padding: 8px 10px; }
+    .diagnostics li[data-level="error"] { border-color: #efb4a8; color: #7f1d1d; }
+    .diagnostics b { color: var(--ink); display: inline-block; margin-right: 6px; }
+    pre { background: #fff; border: 1px solid var(--line); overflow: auto; padding: 10px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Eidos Graph Kit Review</h1>
+    <p>Five tabs using synthetic data. Use this to judge layout behavior before adding features.</p>
+    <nav class="tabs"><button class="active" data-target="pipeline">Pipeline</button><button class="" data-target="hub">Hub Spokes</button><button class="" data-target="diamond">Diamond</button><button class="" data-target="crowded">Crowded</button><button class="" data-target="bad">Bad Input</button></nav>
+    
+    <section class="panel active" id="pipeline" data-dropped="0">
+      <header>
+        <div>
+          <p>Synthetic data-flow map with sections, icons, routed edges, and public-safe hover metadata.</p>
+          <h2>Pipeline</h2>
+        </div>
+        <dl>
+          <div><dt>Nodes</dt><dd>11</dd></div>
+          <div><dt>Edges</dt><dd>11</dd></div>
+          <div><dt>Dropped</dt><dd>0</dd></div>
+          <div><dt>Warnings</dt><dd>1</dd></div>
+          <div><dt>Mode</dt><dd>pipeline</dd></div>
+        </dl>
+      </header>
+      <div class="graph-frame"><svg viewBox="0 0 1400 380" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><marker id="egk-pipeline-arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" class="egk-pipeline-arrowhead" /></marker></defs><g class="egk-pipeline-sections"><g class="egk-pipeline-section"><rect x="-20" y="-28" width="180" height="412" rx="10" /><text x="-6" y="-4" class="egk-pipeline-section-title">Sources</text><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iIzZhOWY0NSIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjMiIGZpbGw9IiNmZmYiLz48L3N2Zz4=" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iIzZhOWY0NSIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjMiIGZpbGw9IiNmZmYiLz48L3N2Zz4=" x="130" y="-18" width="18" height="18" /></g><g class="egk-pipeline-section"><rect x="160" y="104" width="1080" height="148" rx="10" /><text x="174" y="128" class="egk-pipeline-section-title">Runtime</text><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iMyIgeT0iNCIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE2IiByeD0iNCIgZmlsbD0iIzE3MjAxYiIvPjxwYXRoIGQ9Ik03IDhoMTBNNyAxMmgxME03IDE2aDciIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iMyIgeT0iNCIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE2IiByeD0iNCIgZmlsbD0iIzE3MjAxYiIvPjxwYXRoIGQ9Ik03IDhoMTBNNyAxMmgxME03IDE2aDciIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=" x="1210" y="114" width="18" height="18" /></g><g class="egk-pipeline-section"><rect x="520" y="104" width="540" height="148" rx="10" /><text x="534" y="128" class="egk-pipeline-section-title">Warehouse</text><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEzIDN2OGg3TDEwIDIxdi04SDRMMTMgM3oiIGZpbGw9IiMyNDkzNjEiLz48L3N2Zz4=" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEzIDN2OGg3TDEwIDIxdi04SDRMMTMgM3oiIGZpbGw9IiMyNDkzNjEiLz48L3N2Zz4=" x="1030" y="114" width="18" height="18" /></g><g class="egk-pipeline-section"><rect x="1240" y="-28" width="180" height="412" rx="10" /><text x="1254" y="-4" class="egk-pipeline-section-title">Apps</text><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iNCIgeT0iNSIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzE1NWU3NSIvPjxwYXRoIGQ9Ik04IDEwaDhNOCAxNGg1IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iNCIgeT0iNSIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzE1NWU3NSIvPjxwYXRoIGQ9Ik04IDEwaDhNOCAxNGg1IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+" x="1390" y="-18" width="18" height="18" /></g></g><g class="egk-pipeline-edges" marker-end="url(#egk-pipeline-arrowhead)"><path class="egk-pipeline-edge" d="M 70 58 C 160 58, 160 190, 250 190" /><path class="egk-pipeline-edge" d="M 70 190 C 160 190, 160 190, 250 190" /><path class="egk-pipeline-edge" d="M 70 322 C 160 322, 160 190, 250 190" /><path class="egk-pipeline-edge" d="M 250 190 C 340 190, 340 190, 430 190" /><path class="egk-pipeline-edge" d="M 250 228 L 250 354 Q 250 366 262 366 L 598 366 Q 610 366 610 354 L 610 228" /><path class="egk-pipeline-edge" d="M 610 190 C 700 190, 700 190, 790 190" /><path class="egk-pipeline-edge" d="M 790 190 C 880 190, 880 190, 970 190" /><path class="egk-pipeline-edge" d="M 970 190 C 1060 190, 1060 190, 1150 190" /><path class="egk-pipeline-edge" d="M 1150 190 C 1240 190, 1240 58, 1330 58" /><path class="egk-pipeline-edge" d="M 1150 190 C 1240 190, 1240 322, 1330 322" /><path class="egk-pipeline-edge" d="M 430 228 L 430 354 Q 430 366 442 366 L 1318 366 Q 1330 366 1330 354 L 1330 360" /></g><g class="egk-pipeline-nodes"><g class="egk-pipeline-node egk-pipeline-source" data-node-id="billing" tabindex="0"><rect class="egk-pipeline-hit-area" x="0" y="10" width="360" height="140" style="fill: transparent; stroke: transparent; pointer-events: all;" /><rect x="4" y="20" width="132" height="76" rx="7" /><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iIzZhOWY0NSIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjMiIGZpbGw9IiNmZmYiLz48L3N2Zz4=" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iIzZhOWY0NSIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjMiIGZpbGw9IiNmZmYiLz48L3N2Zz4=" x="112" y="28" width="16" height="16" /><text x="70" y="36" class="egk-pipeline-kind">source</text><text x="70" y="56" class="egk-pipeline-title">Billing</text><text x="70" y="74" class="egk-pipeline-subtitle">source</text><foreignObject x="146" y="14" width="210" height="132" class="egk-pipeline-popover"><div xmlns="http://www.w3.org/1999/xhtml" class="egk-pipeline-popover-card"><strong>Billing</strong><div class="egk-pipeline-popover-author">Example team</div><p class="egk-pipeline-popover-details">Synthetic billing records used to prove source fan-in.</p><div class="egk-pipeline-popover-links"><a class="egk-pipeline-popover-pill" href="#">Source</a><a class="egk-pipeline-popover-pill" href="#">Runbook</a></div></div></foreignObject></g><g class="egk-pipeline-node egk-pipeline-source" data-node-id="crm" tabindex="0"><rect class="egk-pipeline-hit-area" x="0" y="142" width="360" height="140" style="fill: transparent; stroke: transparent; pointer-events: all;" /><rect x="4" y="152" width="132" height="76" rx="7" /><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iIzZhOWY0NSIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjMiIGZpbGw9IiNmZmYiLz48L3N2Zz4=" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iIzZhOWY0NSIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjMiIGZpbGw9IiNmZmYiLz48L3N2Zz4=" x="112" y="160" width="16" height="16" /><text x="70" y="168" class="egk-pipeline-kind">source</text><text x="70" y="188" class="egk-pipeline-title">CRM</text><text x="70" y="206" class="egk-pipeline-subtitle">source</text><foreignObject x="146" y="146" width="210" height="132" class="egk-pipeline-popover"><div xmlns="http://www.w3.org/1999/xhtml" class="egk-pipeline-popover-card"><strong>CRM</strong><div class="egk-pipeline-popover-author">Example team</div><p class="egk-pipeline-popover-details">Synthetic customer records used in the review harness.</p><div class="egk-pipeline-popover-links"><a class="egk-pipeline-popover-pill" href="#">Owner</a></div></div></foreignObject></g><g class="egk-pipeline-node egk-pipeline-source" data-node-id="support" tabindex="0"><rect class="egk-pipeline-hit-area" x="0" y="238" width="360" height="140" style="fill: transparent; stroke: transparent; pointer-events: all;" /><rect x="4" y="284" width="132" height="76" rx="7" /><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iIzZhOWY0NSIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjMiIGZpbGw9IiNmZmYiLz48L3N2Zz4=" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iOSIgZmlsbD0iIzZhOWY0NSIvPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjMiIGZpbGw9IiNmZmYiLz48L3N2Zz4=" x="112" y="292" width="16" height="16" /><text x="70" y="300" class="egk-pipeline-kind">source</text><text x="70" y="320" class="egk-pipeline-title">Support</text><text x="70" y="338" class="egk-pipeline-subtitle">source</text><foreignObject x="146" y="242" width="210" height="132" class="egk-pipeline-popover"><div xmlns="http://www.w3.org/1999/xhtml" class="egk-pipeline-popover-card"><strong>Support</strong><div class="egk-pipeline-popover-author">Example team</div><p class="egk-pipeline-popover-details">Synthetic tickets used to exercise source-to-runtime routing.</p><div class="egk-pipeline-popover-links"><a class="egk-pipeline-popover-pill" href="#">Docs</a></div></div></foreignObject></g><g class="egk-pipeline-node egk-pipeline-runtime" data-node-id="collector" tabindex="0"><rect class="egk-pipeline-hit-area" x="180" y="142" width="360" height="140" style="fill: transparent; stroke: transparent; pointer-events: all;" /><rect x="184" y="152" width="132" height="76" rx="7" /><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iMyIgeT0iNCIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE2IiByeD0iNCIgZmlsbD0iIzE3MjAxYiIvPjxwYXRoIGQ9Ik03IDhoMTBNNyAxMmgxME03IDE2aDciIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iMyIgeT0iNCIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE2IiByeD0iNCIgZmlsbD0iIzE3MjAxYiIvPjxwYXRoIGQ9Ik03IDhoMTBNNyAxMmgxME03IDE2aDciIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=" x="292" y="160" width="16" height="16" /><text x="250" y="168" class="egk-pipeline-kind">runtime</text><text x="250" y="188" class="egk-pipeline-title">Collector</text><text x="250" y="206" class="egk-pipeline-subtitle">scheduled job</text><foreignObject x="326" y="146" width="210" height="132" class="egk-pipeline-popover"><div xmlns="http://www.w3.org/1999/xhtml" class="egk-pipeline-popover-card"><strong>Collector</strong><div class="egk-pipeline-popover-author">Platform</div><p class="egk-pipeline-popover-details">Collects source records and writes raw batches.</p><div class="egk-pipeline-popover-links"><a class="egk-pipeline-popover-pill" href="#">Logs</a><a class="egk-pipeline-popover-pill" href="#">Deploy</a></div></div></foreignObject></g><g class="egk-pipeline-node egk-pipeline-warehouse" data-node-id="metadata" tabindex="0"><rect class="egk-pipeline-hit-area" x="360" y="142" width="360" height="140" style="fill: transparent; stroke: transparent; pointer-events: all;" /><rect x="364" y="152" width="132" height="76" rx="7" /><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iMyIgeT0iNCIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE2IiByeD0iNCIgZmlsbD0iIzE3MjAxYiIvPjxwYXRoIGQ9Ik03IDhoMTBNNyAxMmgxME03IDE2aDciIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iMyIgeT0iNCIgd2lkdGg9IjE4IiBoZWlnaHQ9IjE2IiByeD0iNCIgZmlsbD0iIzE3MjAxYiIvPjxwYXRoIGQ9Ik03IDhoMTBNNyAxMmgxME03IDE2aDciIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=" x="472" y="160" width="16" height="16" /><text x="430" y="168" class="egk-pipeline-kind">warehouse</text><text x="430" y="188" class="egk-pipeline-title">Metadata</text><text x="430" y="206" class="egk-pipeline-subtitle">run state</text><foreignObject x="506" y="146" width="210" height="132" class="egk-pipeline-popover"><div xmlns="http://www.w3.org/1999/xhtml" class="egk-pipeline-popover-card"><strong>Metadata</strong><div class="egk-pipeline-popover-author">Platform</div><p class="egk-pipeline-popover-details">Stores synthetic run status and proof records.</p><div class="egk-pipeline-popover-links"><a class="egk-pipeline-popover-pill" href="#">Table</a></div></div></foreignObject></g><g class="egk-pipeline-node egk-pipeline-warehouse" data-node-id="raw" tabindex="0"><rect class="egk-pipeline-hit-area" x="540" y="142" width="360" height="140" style="fill: transparent; stroke: transparent; pointer-events: all;" /><rect x="544" y="152" width="132" height="76" rx="7" /><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEzIDN2OGg3TDEwIDIxdi04SDRMMTMgM3oiIGZpbGw9IiMyNDkzNjEiLz48L3N2Zz4=" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEzIDN2OGg3TDEwIDIxdi04SDRMMTMgM3oiIGZpbGw9IiMyNDkzNjEiLz48L3N2Zz4=" x="652" y="160" width="16" height="16" /><text x="610" y="168" class="egk-pipeline-kind">warehouse</text><text x="610" y="188" class="egk-pipeline-title">Raw Store</text><text x="610" y="206" class="egk-pipeline-subtitle">landing</text><foreignObject x="686" y="146" width="210" height="132" class="egk-pipeline-popover"><div xmlns="http://www.w3.org/1999/xhtml" class="egk-pipeline-popover-card"><strong>Raw Store</strong><div class="egk-pipeline-popover-author">Warehouse</div><p class="egk-pipeline-popover-details">Raw landing area for synthetic records.</p><div class="egk-pipeline-popover-links"><a class="egk-pipeline-popover-pill" href="#">Schema</a></div></div></foreignObject></g><g class="egk-pipeline-node egk-pipeline-transform" data-node-id="normalize" tabindex="0"><rect class="egk-pipeline-hit-area" x="720" y="142" width="360" height="140" style="fill: transparent; stroke: transparent; pointer-events: all;" /><rect x="724" y="152" width="132" height="76" rx="7" /><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTQgN2gxMm00IDAtMy0zbTMgMy0zIDNNMjAgMTdIOG0tNCAwIDMtM20tMyAzIDMgMyIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTQgN2gxMm00IDAtMy0zbTMgMy0zIDNNMjAgMTdIOG0tNCAwIDMtM20tMyAzIDMgMyIgc3Ryb2tlPSIjNjQ3NDhiIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==" x="832" y="160" width="16" height="16" /><text x="790" y="168" class="egk-pipeline-kind">transform</text><text x="790" y="188" class="egk-pipeline-title">Normalize</text><text x="790" y="206" class="egk-pipeline-subtitle">transform</text><foreignObject x="866" y="146" width="210" height="132" class="egk-pipeline-popover"><div xmlns="http://www.w3.org/1999/xhtml" class="egk-pipeline-popover-card"><strong>Normalize</strong><div class="egk-pipeline-popover-author">Data</div><p class="egk-pipeline-popover-details">Normalizes raw records into a reviewable model.</p><div class="egk-pipeline-popover-links"><a class="egk-pipeline-popover-pill" href="#">Models</a></div></div></foreignObject></g><g class="egk-pipeline-node egk-pipeline-warehouse" data-node-id="model" tabindex="0"><rect class="egk-pipeline-hit-area" x="900" y="142" width="360" height="140" style="fill: transparent; stroke: transparent; pointer-events: all;" /><rect x="904" y="152" width="132" height="76" rx="7" /><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEzIDN2OGg3TDEwIDIxdi04SDRMMTMgM3oiIGZpbGw9IiMyNDkzNjEiLz48L3N2Zz4=" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEzIDN2OGg3TDEwIDIxdi04SDRMMTMgM3oiIGZpbGw9IiMyNDkzNjEiLz48L3N2Zz4=" x="1012" y="160" width="16" height="16" /><text x="970" y="168" class="egk-pipeline-kind">warehouse</text><text x="970" y="188" class="egk-pipeline-title">Model Store</text><text x="970" y="206" class="egk-pipeline-subtitle">serving</text><foreignObject x="1046" y="146" width="210" height="132" class="egk-pipeline-popover"><div xmlns="http://www.w3.org/1999/xhtml" class="egk-pipeline-popover-card"><strong>Model Store</strong><div class="egk-pipeline-popover-author">Warehouse</div><p class="egk-pipeline-popover-details">Serving model for app and QA surfaces.</p><div class="egk-pipeline-popover-links"><a class="egk-pipeline-popover-pill" href="#">Docs</a></div></div></foreignObject></g><g class="egk-pipeline-node egk-pipeline-publish" data-node-id="publish" tabindex="0"><rect class="egk-pipeline-hit-area" x="1080" y="142" width="318" height="140" style="fill: transparent; stroke: transparent; pointer-events: all;" /><rect x="1084" y="152" width="132" height="76" rx="7" /><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDN2MTJtMC0xMiA0IDRtLTQtNC00IDRtLTQgMTBoMTYiIHN0cm9rZT0iI2E3NjAxMSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDN2MTJtMC0xMiA0IDRtLTQtNC00IDRtLTQgMTBoMTYiIHN0cm9rZT0iI2E3NjAxMSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=" x="1192" y="160" width="16" height="16" /><text x="1150" y="168" class="egk-pipeline-kind">publish</text><text x="1150" y="188" class="egk-pipeline-title">Publish</text><text x="1150" y="206" class="egk-pipeline-subtitle">contract</text><foreignObject x="1184" y="146" width="210" height="132" class="egk-pipeline-popover"><div xmlns="http://www.w3.org/1999/xhtml" class="egk-pipeline-popover-card"><strong>Publish</strong><div class="egk-pipeline-popover-author">Data</div><p class="egk-pipeline-popover-details">Publishes a versioned read contract after validation.</p><div class="egk-pipeline-popover-links"><a class="egk-pipeline-popover-pill" href="#">Asset</a><a class="egk-pipeline-popover-pill" href="#">Proof</a></div></div></foreignObject></g><g class="egk-pipeline-node egk-pipeline-app" data-node-id="dashboard" tabindex="0"><rect class="egk-pipeline-hit-area" x="1180" y="10" width="220" height="140" style="fill: transparent; stroke: transparent; pointer-events: all;" /><rect x="1264" y="20" width="132" height="76" rx="7" /><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iNCIgeT0iNSIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzE1NWU3NSIvPjxwYXRoIGQ9Ik04IDEwaDhNOCAxNGg1IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iNCIgeT0iNSIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzE1NWU3NSIvPjxwYXRoIGQ9Ik04IDEwaDhNOCAxNGg1IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+" x="1372" y="28" width="16" height="16" /><text x="1330" y="36" class="egk-pipeline-kind">app</text><text x="1330" y="56" class="egk-pipeline-title">Dashboard</text><text x="1330" y="74" class="egk-pipeline-subtitle">app</text><foreignObject x="1184" y="14" width="210" height="132" class="egk-pipeline-popover"><div xmlns="http://www.w3.org/1999/xhtml" class="egk-pipeline-popover-card"><strong>Dashboard</strong><div class="egk-pipeline-popover-author">Product</div><p class="egk-pipeline-popover-details">Example dashboard reading from the serving model.</p><div class="egk-pipeline-popover-links"><a class="egk-pipeline-popover-pill" href="#">Open</a></div></div></foreignObject></g><g class="egk-pipeline-node egk-pipeline-app" data-node-id="qa" tabindex="0"><rect class="egk-pipeline-hit-area" x="1180" y="238" width="220" height="140" style="fill: transparent; stroke: transparent; pointer-events: all;" /><rect x="1264" y="284" width="132" height="76" rx="7" /><image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iNCIgeT0iNSIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzE1NWU3NSIvPjxwYXRoIGQ9Ik04IDEwaDhNOCAxNGg1IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+" xlink:href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3QgeD0iNCIgeT0iNSIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzE1NWU3NSIvPjxwYXRoIGQ9Ik04IDEwaDhNOCAxNGg1IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PC9zdmc+" x="1372" y="292" width="16" height="16" /><text x="1330" y="300" class="egk-pipeline-kind">app</text><text x="1330" y="320" class="egk-pipeline-title">QA</text><text x="1330" y="338" class="egk-pipeline-subtitle">checks</text><foreignObject x="1184" y="242" width="210" height="132" class="egk-pipeline-popover"><div xmlns="http://www.w3.org/1999/xhtml" class="egk-pipeline-popover-card"><strong>QA</strong><div class="egk-pipeline-popover-author">Platform</div><p class="egk-pipeline-popover-details">Example operator surface for proofs and checks.</p><div class="egk-pipeline-popover-links"><a class="egk-pipeline-popover-pill" href="#">Open</a></div></div></foreignObject></g></g></svg></div>
+      <ul class="diagnostics"><li data-level="warn"><b>long-edge</b> metadata -&gt; qa skips 4 layers.</li></ul>
+      
+    </section>
+  
+    <section class="panel " id="hub" data-dropped="0">
+      <header>
+        <div>
+          <p>A central app with satellites. This exercises radial placement and connection readability.</p>
+          <h2>Hub Spokes</h2>
+        </div>
+        <dl>
+          <div><dt>Nodes</dt><dd>5</dd></div>
+          <div><dt>Edges</dt><dd>4</dd></div>
+          <div><dt>Dropped</dt><dd>0</dd></div>
+          <div><dt>Warnings</dt><dd>0</dd></div>
+          <div><dt>Mode</dt><dd>hubSpoke</dd></div>
+        </dl>
+      </header>
+      <div class="graph-frame"><svg viewBox="0 0 900 380" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><marker id="egk-hub-arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" class="egk-hub-arrowhead" /></marker></defs><g class="egk-hub-sections"></g><g class="egk-hub-edges" marker-end="url(#egk-hub-arrowhead)"><path class="egk-hub-edge" d="M 450 190 C 326 190, 326 145, 201 145" /><path class="egk-hub-edge" d="M 450 190 C 411 190, 411 103, 371 103" /><path class="egk-hub-edge" d="M 450 190 C 518 190, 518 111, 585 111" /><path class="egk-hub-edge" d="M 450 190 C 587 190, 587 162, 724 162" /></g><g class="egk-hub-nodes"><g class="egk-hub-node egk-hub-app" data-node-id="hub" tabindex="0"><rect x="384" y="152" width="132" height="76" rx="7" /><text x="450" y="168" class="egk-hub-kind">app</text><text x="450" y="188" class="egk-hub-title">Workspace</text><text x="450" y="206" class="egk-hub-subtitle">central hub</text></g><g class="egk-hub-node egk-hub-app" data-node-id="qa" tabindex="0"><rect x="135" y="107" width="132" height="76" rx="7" /><text x="201" y="123" class="egk-hub-kind">app</text><text x="201" y="143" class="egk-hub-title">Checks</text><text x="201" y="161" class="egk-hub-subtitle">operator site</text></g><g class="egk-hub-node egk-hub-service" data-node-id="assistant" tabindex="0"><rect x="305" y="65" width="132" height="76" rx="7" /><text x="371" y="81" class="egk-hub-kind">service</text><text x="371" y="101" class="egk-hub-title">Assistant</text><text x="371" y="119" class="egk-hub-subtitle">AI access</text></g><g class="egk-hub-node egk-hub-warehouse" data-node-id="store" tabindex="0"><rect x="519" y="73" width="132" height="76" rx="7" /><text x="585" y="89" class="egk-hub-kind">warehouse</text><text x="585" y="109" class="egk-hub-title">Store</text><text x="585" y="127" class="egk-hub-subtitle">auth + data</text></g><g class="egk-hub-node egk-hub-runtime" data-node-id="runtime" tabindex="0"><rect x="658" y="124" width="132" height="76" rx="7" /><text x="724" y="140" class="egk-hub-kind">runtime</text><text x="724" y="160" class="egk-hub-title">Runtime</text><text x="724" y="178" class="egk-hub-subtitle">workers</text></g></g></svg></div>
+      
+      
+    </section>
+  
+    <section class="panel " id="diamond" data-dropped="0">
+      <header>
+        <div>
+          <p>Split, parallel work, merge. Edges should not feel like spaghetti.</p>
+          <h2>Diamond</h2>
+        </div>
+        <dl>
+          <div><dt>Nodes</dt><dd>6</dd></div>
+          <div><dt>Edges</dt><dd>7</dd></div>
+          <div><dt>Dropped</dt><dd>0</dd></div>
+          <div><dt>Warnings</dt><dd>0</dd></div>
+          <div><dt>Mode</dt><dd>pipeline</dd></div>
+        </dl>
+      </header>
+      <div class="graph-frame"><svg viewBox="0 0 900 340" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><marker id="egk-diamond-arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" class="egk-diamond-arrowhead" /></marker></defs><g class="egk-diamond-sections"></g><g class="egk-diamond-edges" marker-end="url(#egk-diamond-arrowhead)"><path class="egk-diamond-edge" d="M 70 170 C 197 170, 197 58, 323 58" /><path class="egk-diamond-edge" d="M 70 170 C 197 170, 197 170, 323 170" /><path class="egk-diamond-edge" d="M 70 170 C 197 170, 197 282, 323 282" /><path class="egk-diamond-edge" d="M 323 58 C 450 58, 450 170, 577 170" /><path class="egk-diamond-edge" d="M 323 170 C 450 170, 450 170, 577 170" /><path class="egk-diamond-edge" d="M 323 282 C 450 282, 450 170, 577 170" /><path class="egk-diamond-edge" d="M 577 170 C 704 170, 704 170, 830 170" /></g><g class="egk-diamond-nodes"><g class="egk-diamond-node egk-diamond-source" data-node-id="input" tabindex="0"><rect x="4" y="132" width="132" height="76" rx="7" /><text x="70" y="148" class="egk-diamond-kind">source</text><text x="70" y="168" class="egk-diamond-title">Input</text><text x="70" y="186" class="egk-diamond-subtitle">event</text></g><g class="egk-diamond-node egk-diamond-transform" data-node-id="validate" tabindex="0"><rect x="257" y="20" width="132" height="76" rx="7" /><text x="323" y="36" class="egk-diamond-kind">transform</text><text x="323" y="56" class="egk-diamond-title">Validate</text><text x="323" y="74" class="egk-diamond-subtitle">checks</text></g><g class="egk-diamond-node egk-diamond-transform" data-node-id="enrich" tabindex="0"><rect x="257" y="132" width="132" height="76" rx="7" /><text x="323" y="148" class="egk-diamond-kind">transform</text><text x="323" y="168" class="egk-diamond-title">Enrich</text><text x="323" y="186" class="egk-diamond-subtitle">metadata</text></g><g class="egk-diamond-node egk-diamond-transform" data-node-id="score" tabindex="0"><rect x="257" y="244" width="132" height="76" rx="7" /><text x="323" y="260" class="egk-diamond-kind">transform</text><text x="323" y="280" class="egk-diamond-title">Score</text><text x="323" y="298" class="egk-diamond-subtitle">rules</text></g><g class="egk-diamond-node egk-diamond-publish" data-node-id="merge" tabindex="0"><rect x="511" y="132" width="132" height="76" rx="7" /><text x="577" y="148" class="egk-diamond-kind">publish</text><text x="577" y="168" class="egk-diamond-title">Merge</text><text x="577" y="186" class="egk-diamond-subtitle">record</text></g><g class="egk-diamond-node egk-diamond-warehouse" data-node-id="out" tabindex="0"><rect x="764" y="132" width="132" height="76" rx="7" /><text x="830" y="148" class="egk-diamond-kind">warehouse</text><text x="830" y="168" class="egk-diamond-title">Output</text><text x="830" y="186" class="egk-diamond-subtitle">table</text></g></g></svg></div>
+      
+      
+    </section>
+  
+    <section class="panel " id="crowded" data-dropped="0">
+      <header>
+        <div>
+          <p>Lots of sources into one runtime. This exposes text collisions and edge bundling problems.</p>
+          <h2>Crowded</h2>
+        </div>
+        <dl>
+          <div><dt>Nodes</dt><dd>10</dd></div>
+          <div><dt>Edges</dt><dd>9</dd></div>
+          <div><dt>Dropped</dt><dd>0</dd></div>
+          <div><dt>Warnings</dt><dd>1</dd></div>
+          <div><dt>Mode</dt><dd>fanIn</dd></div>
+        </dl>
+      </header>
+      <div class="graph-frame"><svg viewBox="0 0 900 544" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><marker id="egk-crowded-arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" class="egk-crowded-arrowhead" /></marker></defs><g class="egk-crowded-sections"></g><g class="egk-crowded-edges" marker-end="url(#egk-crowded-arrowhead)"><path class="egk-crowded-edge" d="M 88 94 L 88 518 Q 88 530 100 530 L 510 530 Q 522 530 522 518 L 522 310" /><path class="egk-crowded-edge" d="M 88 238 L 88 518 Q 88 530 100 530 L 510 530 Q 522 530 522 518 L 522 310" /><path class="egk-crowded-edge" d="M 88 382 L 88 518 Q 88 530 100 530 L 510 530 Q 522 530 522 518 L 522 310" /><path class="egk-crowded-edge" d="M 88 526 L 88 518 Q 88 530 100 530 L 510 530 Q 522 530 522 518 L 522 310" /><path class="egk-crowded-edge" d="M 243 56 C 383 56, 383 272, 522 272" /><path class="egk-crowded-edge" d="M 243 200 C 383 200, 383 272, 522 272" /><path class="egk-crowded-edge" d="M 243 344 C 383 344, 383 272, 522 272" /><path class="egk-crowded-edge" d="M 243 488 C 383 488, 383 272, 522 272" /><path class="egk-crowded-edge" d="M 522 272 C 667 272, 667 272, 812 272" /></g><g class="egk-crowded-nodes"><g class="egk-crowded-node egk-crowded-source" data-node-id="billing" tabindex="0"><rect x="22" y="18" width="132" height="76" rx="7" /><text x="88" y="34" class="egk-crowded-kind">source</text><text x="88" y="54" class="egk-crowded-title">Billing</text><text x="88" y="72" class="egk-crowded-subtitle">source</text></g><g class="egk-crowded-node egk-crowded-source" data-node-id="crm" tabindex="0"><rect x="22" y="162" width="132" height="76" rx="7" /><text x="88" y="178" class="egk-crowded-kind">source</text><text x="88" y="198" class="egk-crowded-title">CRM</text><text x="88" y="216" class="egk-crowded-subtitle">source</text></g><g class="egk-crowded-node egk-crowded-source" data-node-id="support" tabindex="0"><rect x="22" y="306" width="132" height="76" rx="7" /><text x="88" y="322" class="egk-crowded-kind">source</text><text x="88" y="342" class="egk-crowded-title">Support</text><text x="88" y="360" class="egk-crowded-subtitle">source</text></g><g class="egk-crowded-node egk-crowded-source" data-node-id="inventory" tabindex="0"><rect x="22" y="450" width="132" height="76" rx="7" /><text x="88" y="466" class="egk-crowded-kind">source</text><text x="88" y="486" class="egk-crowded-title">Inventory</text><text x="88" y="504" class="egk-crowded-subtitle">source</text></g><g class="egk-crowded-node egk-crowded-source" data-node-id="payroll" tabindex="0"><rect x="177" y="18" width="132" height="76" rx="7" /><text x="243" y="34" class="egk-crowded-kind">source</text><text x="243" y="54" class="egk-crowded-title">Payroll</text><text x="243" y="72" class="egk-crowded-subtitle">source</text></g><g class="egk-crowded-node egk-crowded-source" data-node-id="events" tabindex="0"><rect x="177" y="162" width="132" height="76" rx="7" /><text x="243" y="178" class="egk-crowded-kind">source</text><text x="243" y="198" class="egk-crowded-title">Events</text><text x="243" y="216" class="egk-crowded-subtitle">source</text></g><g class="egk-crowded-node egk-crowded-source" data-node-id="forms" tabindex="0"><rect x="177" y="306" width="132" height="76" rx="7" /><text x="243" y="322" class="egk-crowded-kind">source</text><text x="243" y="342" class="egk-crowded-title">Forms</text><text x="243" y="360" class="egk-crowded-subtitle">source</text></g><g class="egk-crowded-node egk-crowded-source" data-node-id="telemetry" tabindex="0"><rect x="177" y="450" width="132" height="76" rx="7" /><text x="243" y="466" class="egk-crowded-kind">source</text><text x="243" y="486" class="egk-crowded-title">Telemetry</text><text x="243" y="504" class="egk-crowded-subtitle">source</text></g><g class="egk-crowded-node egk-crowded-runtime" data-node-id="runtime" tabindex="0"><rect x="456" y="234" width="132" height="76" rx="7" /><text x="522" y="250" class="egk-crowded-kind">runtime</text><text x="522" y="270" class="egk-crowded-title">Runtime</text><text x="522" y="288" class="egk-crowded-subtitle">collector</text></g><g class="egk-crowded-node egk-crowded-warehouse" data-node-id="warehouse" tabindex="0"><rect x="746" y="234" width="132" height="76" rx="7" /><text x="812" y="250" class="egk-crowded-kind">warehouse</text><text x="812" y="270" class="egk-crowded-title">Warehouse</text><text x="812" y="288" class="egk-crowded-subtitle">landing</text></g></g></svg></div>
+      <ul class="diagnostics"><li data-level="warn"><b>fan-in</b> runtime has 8 inputs; use groups or bundles.</li></ul>
+      
+    </section>
+  
+    <section class="panel " id="bad" data-dropped="1">
+      <header>
+        <div>
+          <p>Cycle plus missing edge target. Good libraries expose this clearly instead of silently lying.</p>
+          <h2>Bad Input</h2>
+        </div>
+        <dl>
+          <div><dt>Nodes</dt><dd>3</dd></div>
+          <div><dt>Edges</dt><dd>3</dd></div>
+          <div><dt>Dropped</dt><dd>1</dd></div>
+          <div><dt>Warnings</dt><dd>3</dd></div>
+          <div><dt>Mode</dt><dd>pipeline</dd></div>
+        </dl>
+      </header>
+      <div class="graph-frame"><svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><marker id="egk-bad-arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" class="egk-bad-arrowhead" /></marker></defs><g class="egk-bad-sections"></g><g class="egk-bad-edges" marker-end="url(#egk-bad-arrowhead)"><path class="egk-bad-edge" d="M 70 150 C 225 150, 225 150, 380 150" /><path class="egk-bad-edge" d="M 380 150 C 535 150, 535 150, 690 150" /><path class="egk-bad-edge" d="M 690 188 L 690 202 Q 690 214 678 214 L 82 214 Q 70 214 70 202 L 70 188" /></g><g class="egk-bad-nodes"><g class="egk-bad-node egk-bad-note" data-node-id="a" tabindex="0"><rect x="4" y="112" width="132" height="76" rx="7" /><text x="70" y="128" class="egk-bad-kind">note</text><text x="70" y="148" class="egk-bad-title">A</text><text x="70" y="166" class="egk-bad-subtitle">starts</text></g><g class="egk-bad-node egk-bad-note" data-node-id="b" tabindex="0"><rect x="314" y="112" width="132" height="76" rx="7" /><text x="380" y="128" class="egk-bad-kind">note</text><text x="380" y="148" class="egk-bad-title">B</text><text x="380" y="166" class="egk-bad-subtitle">cycles</text></g><g class="egk-bad-node egk-bad-note" data-node-id="c" tabindex="0"><rect x="624" y="112" width="132" height="76" rx="7" /><text x="690" y="128" class="egk-bad-kind">note</text><text x="690" y="148" class="egk-bad-title">C</text><text x="690" y="166" class="egk-bad-subtitle">returns</text></g></g></svg></div>
+      <ul class="diagnostics"><li data-level="warn"><b>back-edge</b> c -&gt; a points backward.</li><li data-level="error"><b>missing-node</b> c -&gt; missing misses missing.</li><li data-level="warn"><b>cycle</b> Cycle detected: a -&gt; b -&gt; c -&gt; a.</li></ul>
+      <pre>[
+  {
+    "from": "c",
+    "to": "missing"
+  }
+]</pre>
+    </section>
+  
+  </main>
+  <div class="floating-popover" id="floating-popover"></div>
+  <script>
+    const buttons = [...document.querySelectorAll("button[data-target]")];
+    const panels = [...document.querySelectorAll(".panel")];
+    const floatingPopover = document.querySelector("#floating-popover");
+    let pinnedNode = undefined;
+    const graphNodes = () => [...document.querySelectorAll('[class*="-nodes"] > [class*="-node"]')];
+    const visibleNodeRect = (node) => {
+      const rects = [...node.querySelectorAll("rect")].filter((rect) => !rect.getAttribute("class")?.includes("-hit-area"));
+      return rects[0]?.getBoundingClientRect() ?? node.getBoundingClientRect();
+    };
+    const positionPopover = (activeNode) => {
+      const card = activeNode?.querySelector('[class*="-popover-card"]');
+      if (!activeNode || !card || !floatingPopover) {
+        floatingPopover?.classList.remove("is-visible");
+        return;
+      }
+      floatingPopover.innerHTML = card.innerHTML;
+      const rect = visibleNodeRect(activeNode);
+      const margin = 12;
+      const popoverWidth = 320;
+      let left = rect.right + margin;
+      if (left + popoverWidth > window.innerWidth - margin) left = rect.left - popoverWidth - margin;
+      let top = rect.top - 8;
+      floatingPopover.style.left = Math.max(margin, left) + "px";
+      floatingPopover.style.top = Math.max(margin, Math.min(top, window.innerHeight - 180)) + "px";
+      floatingPopover.classList.add("is-visible");
+    };
+    const activateNode = (activeNode) => {
+      for (const node of graphNodes()) node.classList.toggle("is-active", node === activeNode);
+      activeNode?.parentElement?.appendChild(activeNode);
+      positionPopover(activeNode);
+    };
+    for (const button of buttons) {
+      button.addEventListener("click", () => {
+        buttons.forEach((item) => item.classList.toggle("active", item === button));
+        panels.forEach((panel) => panel.classList.toggle("active", panel.id === button.dataset.target));
+        pinnedNode = undefined;
+        activateNode(undefined);
+      });
+    }
+    for (const node of graphNodes()) {
+      node.addEventListener("mouseenter", () => activateNode(node));
+      node.addEventListener("mouseleave", () => {
+        if (pinnedNode !== node) activateNode(pinnedNode);
+      });
+      node.addEventListener("focus", () => activateNode(node));
+      node.addEventListener("blur", () => {
+        if (pinnedNode !== node) activateNode(pinnedNode);
+      });
+      node.addEventListener("click", () => {
+        pinnedNode = pinnedNode === node ? undefined : node;
+        activateNode(pinnedNode ?? node);
+      });
+    }
+    document.addEventListener("mousemove", (event) => {
+      if (pinnedNode) return;
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      const activeNode = target?.closest?.('[class*="-nodes"] > [class*="-node"]');
+      if (target?.closest?.(".floating-popover")) return;
+      activateNode(activeNode);
+    });
+  </script>
+</body>
+</html>
